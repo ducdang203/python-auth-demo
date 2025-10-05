@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: fastapi_db
+      POSTGRES_USER: fastapi_user
+      POSTGRES_PASSWORD: fastapi_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_internal
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_internal
+
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=fastapi_db
+      - POSTGRES_USERNAME=fastapi_user
+      - POSTGRES_PASSWORD=fastapi_password
+    networks:
+      - app_internal
+
+networks:
+  app_internal:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
