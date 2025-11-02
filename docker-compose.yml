@@ -11,6 +11,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fastapi_user -d fastapi_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
@@ -20,14 +26,22 @@ services:
       - redis_data:/data
     networks:
       - app_internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   app:
     build: .
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       - REDIS_URL=redis://redis:6379
       - POSTGRES_SERVER=postgres
@@ -37,6 +51,12 @@ services:
       - POSTGRES_PASSWORD=fastapi_password
     networks:
       - app_internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   app_internal:
